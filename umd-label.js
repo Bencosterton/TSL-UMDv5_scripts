@@ -1,15 +1,20 @@
 #!/usr/bin/env node
 
+// Useage;
+// node umd-label.js -h IP-ADDRESS -w PIP-NUMBER -l "LABEL"
+//
+// NOTE: IP3 Multview is index 0, so PIP-1 = Window 0.
+// This indexing is taken case of in the scritp, so use PIP number, not window number.
+
 const TSL5 = require('tsl-umd-v5');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-let host = '10.10.116.58';
-let window = 14;
-let label = '';
+let host = null;
+let window = null;
+let label = null;
 const PORT = 4003;
 
-// Process arguments
 for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
         case '-h':
@@ -17,8 +22,8 @@ for (let i = 0; i < args.length; i++) {
             break;
         case '-w':
             window = parseInt(args[++i]);
-            if (isNaN(window) || window < 0 || window > 1024) {
-                console.error('Window must be a number between 0 and 1024');
+            if (isNaN(window) || window < 1 || window > 1024) {
+                console.error('Window must be a number between 1 and 1024 (one-based)');
                 process.exit(1);
             }
             break;
@@ -27,24 +32,27 @@ for (let i = 0; i < args.length; i++) {
             break;
         default:
             console.error('Unknown option:', args[i]);
-            console.error('Usage: node script.js [-h host] [-w window] [-l label]');
+            console.error('Usage: node script.js -h <host> -w <window> -l <label>');
             process.exit(1);
     }
 }
 
-if (!label) {
-    console.error('Label is required. Use -l to specify a label');
-    console.error('Usage: node script.js [-h host] [-w window] [-l label]');
+if (!host || !window || !label) {
+    console.error('Error: Missing required arguments.');
+    console.error('Usage: node script.js -h <host> -w <window> -l <label>');
     process.exit(1);
 }
 
-// Initialize TSL UMD instance
+// Convert 0 index of IP3 to 1 base index for PIP
+const adjustedIndex = window - 1;
+
+// Initialize TSL UMD 
 const umd = new TSL5();
 
-// Create a tally object
+// Create tally
 const tally = {
-    screen: 0, // Adjust this based on your setup
-    index: window,
+    screen: 0, 
+    index: adjustedIndex,
     display: {
         rh_tally: 0,
         text_tally: 0,
@@ -54,7 +62,7 @@ const tally = {
     }
 };
 
-console.log(`Setting UMD label for window ${window} on ${host}:${PORT} to "${label}"`);
+console.log(`Setting UMD label for PIP ${window} (index ${adjustedIndex}) on ${host}:${PORT} to "${label}"`);
 
 // Send TCP tally
 try {
